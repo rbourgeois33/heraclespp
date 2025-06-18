@@ -1,0 +1,28 @@
+How to get the results on orcus
+
+load env and build pdi
+source remi/env-heracles.sh 
+
+cmake     -D BUILD_BENCHMARKING=OFF     -D BUILD_DECL_HDF5_PLUGIN=ON     -D BUILD_FORTRAN=OFF     -D BUILD_HDF5_PARALLEL=ON     -D BUILD_DECL_NETCDF_PLUGIN=OFF     -D BUILD_MPI_PLUGIN=ON     -D BUILD_NETCDF_PARALLEL=OFF     -D BUILD_SERIALIZE_PLUGIN=OFF     -D BUILD_SET_VALUE_PLUGIN=OFF     -D BUILD_SHARED_LIBS=ON     -D BUILD_TESTING=OFF     -D BUILD_TRACE_PLUGIN=ON     -D BUILD_USER_CODE_PLUGIN=OFF     -D CMAKE_BUILD_TYPE=Release     -D USE_HDF5=SYSTEM     -D USE_paraconf=EMBEDDED     -D USE_spdlog=EMBEDDED     -D USE_yaml=EMBEDDED     -B build-pdi     -S vendor/pdi
+cmake --build build-pdi --parallel 64
+cmake --install build-pdi --prefix vendor/install_pdi
+
+(for pdi)
+source remi/env-heracles.sh 
+
+build heracles for a100 and v100, with lineinfo and reg usage for source view in ncu and register usage 
+info during compile
+
+mkdir build-v100; cd build-v100
+cmake -DCMAKE_BUILD_TYPE=Release -DNovapp_NDIM=3 -DNovapp_SETUP=rayleigh_taylor3d -DNovapp_EOS=PerfectGas -DNovapp_GEOM=Cartesian -DNovapp_GRAVITY=Uniform -DKokkos_ENABLE_DEPRECATED_CODE_4=OFF -DKokkos_ENABLE_CUDA=ON -DCMAKE_CXX_FLAGS="-lineinfo -res-usage" -DCMAKE_CXX_COMPILER="/home/catA/rb263871/heraclescpp/vendor/kokkos/bin/nvcc_wrapper" -DKokkos_ARCH_VOLTA70=ON ..
+make -j 64
+cd ..
+
+mkdir build-a100; cd build-a100
+cmake -DCMAKE_BUILD_TYPE=Release -DNovapp_NDIM=3 -DNovapp_SETUP=rayleigh_taylor3d -DNovapp_EOS=PerfectGas -DNovapp_GEOM=Cartesian -DNovapp_GRAVITY=Uniform -DKokkos_ENABLE_DEPRECATED_CODE_4=OFF -DKokkos_ENABLE_CUDA=ON -DCMAKE_CXX_FLAGS="-lineinfo -res-usage" -DCMAKE_CXX_COMPILER="/home/catA/rb263871/heraclescpp/vendor/kokkos/bin/nvcc_wrapper" -DKokkos_ARCH_AMPERE80=ON ..
+make -j 64
+cd ..
+
+
+to compile and demangle compiler output for regcount
+LOGFILE="$(git log -1 --pretty=%s | tr ' ' '_' | tr -cd '[:alnum:]_-')_compile_log.txt" && make -j64 > "$LOGFILE" 2>&1 && python ../remi/demangle.py "$LOGFILE"
