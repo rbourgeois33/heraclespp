@@ -120,30 +120,49 @@ public:
         begin[0],end[0],begin[1],end[1],begin[2],end[2],
             KOKKOS_LAMBDA(int i, int j, int k)
             {  
-                #pragma unroll
-                for (int idim = 0; idim < ndim; ++idim)
-                {
-                    
-                    double var_loc = var(i, j, k);
+      
+                double var_loc = var(i, j, k);
 
-                    auto const [i_m, j_m, k_m] = lindex(idim, i, j, k); // i - 1
-                    auto const [i_p, j_p, k_p] = rindex(idim, i, j, k); // i + 1
-                    double const dl = (kron(idim,0) * dx(i)
-                                    + kron(idim,1) * dy(j)
-                                    + kron(idim,2) * dz(k))*0.5;
-                    double const dl_m = (kron(idim,0) * dx(i_m)
-                                      + kron(idim,1) * dy(j_m)
-                                      + kron(idim,2) * dz(k_m))*0.5;
-                    double const dl_p = (kron(idim,0) * dx(i_p )
-                                      + kron(idim,1) * dy(j_p)
-                                      + kron(idim,2) * dz(k_p))*0.5;
+                // === idim = 0 ===
+                {
+                    double const dl   = 0.5 * dx(i);
+                    double const dl_m = 0.5 * dx(i - 1);
+                    double const dl_p = 0.5 * dx(i + 1);
 
                     double const slope = slope_limiter(
-                        (var(i_p, j_p, k_p) - var_loc) / (dl + dl_p),
-                        (var_loc - var(i_m, j_m, k_m)) / (dl_m + dl));
+                        (var(i + 1, j,     k    ) - var_loc) / (dl + dl_p),
+                        (var_loc - var(i - 1, j,     k    )) / (dl_m + dl));
 
-                    var_rec(i, j, k, 0, idim) =  var_loc - dl * slope;
-                    var_rec(i, j, k, 1, idim) =  var_loc + dl * slope;
+                    var_rec(i, j, k, 0, 0) = var_loc - dl * slope;
+                    var_rec(i, j, k, 1, 0) = var_loc + dl * slope;
+                }
+
+                // === idim = 1 ===
+                {
+                    double const dl   = 0.5 * dy(j);
+                    double const dl_m = 0.5 * dy(j - 1);
+                    double const dl_p = 0.5 * dy(j + 1);
+
+                    double const slope = slope_limiter(
+                        (var(i,     j + 1, k    ) - var_loc) / (dl + dl_p),
+                        (var_loc - var(i,     j - 1, k    )) / (dl_m + dl));
+
+                    var_rec(i, j, k, 0, 1) = var_loc - dl * slope;
+                    var_rec(i, j, k, 1, 1) = var_loc + dl * slope;
+                }
+
+                // === idim = 2 ===
+                {
+                    double const dl   = 0.5 * dz(k);
+                    double const dl_m = 0.5 * dz(k - 1);
+                    double const dl_p = 0.5 * dz(k + 1);
+
+                    double const slope = slope_limiter(
+                        (var(i,     j,     k + 1) - var_loc) / (dl + dl_p),
+                        (var_loc - var(i,     j,     k - 1)) / (dl_m + dl));
+
+                    var_rec(i, j, k, 0, 2) = var_loc - dl * slope;
+                    var_rec(i, j, k, 1, 2) = var_loc + dl * slope;
                 }
             });
     }
