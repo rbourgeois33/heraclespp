@@ -26,6 +26,30 @@
 namespace novapp
 {
 
+// 3D loop
+template <typename Function>
+inline void idefix_for(const std::string & NAME,
+                       const int & KB, const int & KE,
+                       const int & JB, const int & JE,
+                       const int & IB, const int & IE,
+                       Function function) {
+  // Kokkos 1D Range
+    const int NK = KE - KB;
+    const int NJ = JE - JB;
+    const int NI = IE - IB;
+    const int NKNJNI = NK*NJ*NI;
+    const int NJNI = NJ * NI;
+    Kokkos::parallel_for(NAME,NKNJNI,
+      KOKKOS_LAMBDA (const int& IDX) {
+        int k = IDX / NJNI;
+        int j = (IDX - k*NJNI) / NI;
+        int i = IDX - k*NJNI - j*NI;
+        k += KB;
+        j += JB;
+        i += IB;
+        function(i,j,k);
+});}
+
 class IFaceReconstruction
 {
 public:
@@ -89,11 +113,13 @@ public:
         KV_cdouble_1d const dy = grid.dy;
         KV_cdouble_1d const dz = grid.dz;
 
-        Kokkos::parallel_for(
-            "face_reconstruction",
-            cell_mdrange(range),
+        auto const [begin, end] = cell_range(range);
+
+        idefix_for(
+        "face_reconstruction",
+        begin[0],end[0],begin[1],end[1],begin[2],end[2],
             KOKKOS_LAMBDA(int i, int j, int k)
-            {
+            {  
                 for (int idim = 0; idim < ndim; ++idim)
                 {
                     auto const [i_m, j_m, k_m] = lindex(idim, i, j, k); // i - 1
@@ -104,7 +130,7 @@ public:
                     double const dl_m = kron(idim,0) * dx(i_m)
                                       + kron(idim,1) * dy(j_m)
                                       + kron(idim,2) * dz(k_m);
-                    double const dl_p = kron(idim,0) * dx(i_p)
+                    double const dl_p = kron(idim,0) * dx(i_p )
                                       + kron(idim,1) * dy(j_p)
                                       + kron(idim,2) * dz(k_p);
 
