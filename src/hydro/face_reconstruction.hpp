@@ -122,6 +122,9 @@ public:
             {  
                 for (int idim = 0; idim < ndim; ++idim)
                 {
+                    
+                    double var_loc = var(i, j, k);
+
                     auto const [i_m, j_m, k_m] = lindex(idim, i, j, k); // i - 1
                     auto const [i_p, j_p, k_p] = rindex(idim, i, j, k); // i + 1
                     double const dl = (kron(idim,0) * dx(i)
@@ -135,11 +138,11 @@ public:
                                       + kron(idim,2) * dz(k_p))*0.5;
 
                     double const slope = slope_limiter(
-                        (var(i_p, j_p, k_p) - var(i, j, k)) / (dl + dl_p),
-                        (var(i, j, k) - var(i_m, j_m, k_m)) / (dl_m + dl));
+                        (var(i_p, j_p, k_p) - var_loc) / (dl + dl_p),
+                        (var_loc - var(i_m, j_m, k_m)) / (dl_m + dl));
 
-                    var_rec(i, j, k, 0, idim) =  var(i, j, k) - dl * slope;
-                    var_rec(i, j, k, 1, idim) =  var(i, j, k) + dl * slope;
+                    var_rec(i, j, k, 0, idim) =  var_loc - dl * slope;
+                    var_rec(i, j, k, 1, idim) =  var_loc + dl * slope;
                 }
             });
     }
