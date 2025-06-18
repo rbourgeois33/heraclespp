@@ -124,22 +124,22 @@ public:
                 {
                     auto const [i_m, j_m, k_m] = lindex(idim, i, j, k); // i - 1
                     auto const [i_p, j_p, k_p] = rindex(idim, i, j, k); // i + 1
-                    double const dl = kron(idim,0) * dx(i)
+                    double const dl = (kron(idim,0) * dx(i)
                                     + kron(idim,1) * dy(j)
-                                    + kron(idim,2) * dz(k);
-                    double const dl_m = kron(idim,0) * dx(i_m)
+                                    + kron(idim,2) * dz(k))*0.5;
+                    double const dl_m = (kron(idim,0) * dx(i_m)
                                       + kron(idim,1) * dy(j_m)
-                                      + kron(idim,2) * dz(k_m);
-                    double const dl_p = kron(idim,0) * dx(i_p )
+                                      + kron(idim,2) * dz(k_m))*0.5;
+                    double const dl_p = (kron(idim,0) * dx(i_p )
                                       + kron(idim,1) * dy(j_p)
-                                      + kron(idim,2) * dz(k_p);
+                                      + kron(idim,2) * dz(k_p))*0.5;
 
                     double const slope = slope_limiter(
-                        (var(i_p, j_p, k_p) - var(i, j, k)) / ((dl + dl_p) / 2),
-                        (var(i, j, k) - var(i_m, j_m, k_m)) / ((dl_m + dl) / 2));
+                        (var(i_p, j_p, k_p) - var(i, j, k)) / (dl + dl_p),
+                        (var(i, j, k) - var(i_m, j_m, k_m)) / (dl_m + dl));
 
-                    var_rec(i, j, k, 0, idim) =  var(i, j, k) - (dl / 2) * slope;
-                    var_rec(i, j, k, 1, idim) =  var(i, j, k) + (dl / 2) * slope;
+                    var_rec(i, j, k, 0, idim) =  var(i, j, k) - dl * slope;
+                    var_rec(i, j, k, 1, idim) =  var(i, j, k) + dl * slope;
                 }
             });
     }
