@@ -77,6 +77,17 @@ public:
         = 0;
 };
 
+KOKKOS_INLINE_FUNCTION float float_slope_limiter(float const diffR, float const diffL)
+    {
+        if((diffL*diffR) > 0)
+        {
+            float const ratio = diffR / diffL;
+            return 0.5f * (diffR + diffL) * (4 * ratio) / ((ratio + 1) * (ratio + 1));
+        }
+
+        return 0;
+    }
+
 template <class SlopeLimiter>
 class LimitedLinearReconstruction : public IFaceReconstruction
 {
@@ -120,50 +131,53 @@ public:
         begin[0],end[0],begin[1],end[1],begin[2],end[2],
             KOKKOS_LAMBDA(int i, int j, int k)
             {  
-      
                 double var_loc = var(i, j, k);
 
                 // === idim = 0 ===
                 {
-                    double const dl   = 0.5 * dx(i);
-                    double const dl_m = 0.5 * dx(i - 1);
-                    double const dl_p = 0.5 * dx(i + 1);
+                    float const dl   = 0.5f * (float)(dx(i));
+                    float const dl_m = 0.5f * (float)(dx(i - 1));
+                    float const dl_p = 0.5f * (float)(dx(i + 1));
 
-                    double const slope = slope_limiter(
-                        (var(i + 1, j,     k    ) - var_loc) / (dl + dl_p),
-                        (var_loc - var(i - 1, j,     k    )) / (dl_m + dl));
+                    float const slope = float_slope_limiter(
+                        ((float)var(i + 1, j, k) - (float)var_loc) / (dl + dl_p),
+                        ((float)var_loc - (float)var(i - 1, j, k)) / (dl_m + dl)
+                    );
 
-                    var_rec(i, j, k, 0, 0) = var_loc - dl * slope;
-                    var_rec(i, j, k, 1, 0) = var_loc + dl * slope;
+                    var_rec(i, j, k, 0, 0) = var_loc - (double)(dl * slope);
+                    var_rec(i, j, k, 1, 0) = var_loc + (double)(dl * slope);
                 }
 
                 // === idim = 1 ===
                 {
-                    double const dl   = 0.5 * dy(j);
-                    double const dl_m = 0.5 * dy(j - 1);
-                    double const dl_p = 0.5 * dy(j + 1);
+                    float const dl   = 0.5f * (float)(dy(j));
+                    float const dl_m = 0.5f * (float)(dy(j - 1));
+                    float const dl_p = 0.5f * (float)(dy(j + 1));
 
-                    double const slope = slope_limiter(
-                        (var(i,     j + 1, k    ) - var_loc) / (dl + dl_p),
-                        (var_loc - var(i,     j - 1, k    )) / (dl_m + dl));
+                    float const slope = float_slope_limiter(
+                        ((float)var(i, j + 1, k) - (float)var_loc) / (dl + dl_p),
+                        ((float)var_loc - (float)var(i, j - 1, k)) / (dl_m + dl)
+                    );
 
-                    var_rec(i, j, k, 0, 1) = var_loc - dl * slope;
-                    var_rec(i, j, k, 1, 1) = var_loc + dl * slope;
+                    var_rec(i, j, k, 0, 1) = var_loc - (double)(dl * slope);
+                    var_rec(i, j, k, 1, 1) = var_loc + (double)(dl * slope);
                 }
 
                 // === idim = 2 ===
                 {
-                    double const dl   = 0.5 * dz(k);
-                    double const dl_m = 0.5 * dz(k - 1);
-                    double const dl_p = 0.5 * dz(k + 1);
+                    float const dl   = 0.5f * (float)(dz(k));
+                    float const dl_m = 0.5f * (float)(dz(k - 1));
+                    float const dl_p = 0.5f * (float)(dz(k + 1));
 
-                    double const slope = slope_limiter(
-                        (var(i,     j,     k + 1) - var_loc) / (dl + dl_p),
-                        (var_loc - var(i,     j,     k - 1)) / (dl_m + dl));
+                    float const slope = float_slope_limiter(
+                        ((float)var(i, j, k + 1) - (float)var_loc) / (dl + dl_p),
+                        ((float)var_loc - (float)var(i, j, k - 1)) / (dl_m + dl)
+                    );
 
-                    var_rec(i, j, k, 0, 2) = var_loc - dl * slope;
-                    var_rec(i, j, k, 1, 2) = var_loc + dl * slope;
+                    var_rec(i, j, k, 0, 2) = var_loc - (double)(dl * slope);
+                    var_rec(i, j, k, 1, 2) = var_loc + (double)(dl * slope);
                 }
+                
             });
     }
 };
