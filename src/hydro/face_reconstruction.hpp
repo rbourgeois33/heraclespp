@@ -120,6 +120,7 @@ public:
         begin[0],end[0],begin[1],end[1],begin[2],end[2],
             KOKKOS_LAMBDA(int i, int j, int k)
             {  
+                #pragma unroll
                 for (int idim = 0; idim < ndim; ++idim)
                 {
                     
